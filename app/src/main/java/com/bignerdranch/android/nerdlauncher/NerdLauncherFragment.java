@@ -1,14 +1,19 @@
 package com.bignerdranch.android.nerdlauncher;
 
 import android.content.Intent;
+import android.content.pm.ActivityInfo;
 import android.content.pm.PackageManager;
 import android.content.pm.ResolveInfo;
+import android.graphics.Bitmap;
+import android.graphics.drawable.BitmapDrawable;
+import android.graphics.drawable.Drawable;
 import android.os.Bundle;
 import android.support.v4.app.ListFragment;
 import android.util.Log;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.ArrayAdapter;
+import android.widget.ListView;
 import android.widget.TextView;
 
 import java.util.Collections;
@@ -45,11 +50,42 @@ public class NerdLauncherFragment extends ListFragment {
                 View view = super.getView(position, convertView, parent);
                 TextView textView = (TextView) view;
                 ResolveInfo resolveInfo = getItem(position);
+
                 textView.setText(resolveInfo.loadLabel(packageManager));
+
+                int textViewDimension = textView.getLineHeight() * 2;
+                Drawable icon = resolveInfo.loadIcon(packageManager);
+
+                if (((BitmapDrawable) icon).getBitmap().getHeight() > textViewDimension) {
+                    icon = scaleDrawable(icon, textViewDimension, textViewDimension);
+                }
+                textView.setCompoundDrawablesWithIntrinsicBounds(icon, null, null, null);
+
                 return view;
             }
         };
 
         setListAdapter(adapter);
+    }
+
+    @Override
+    public void onListItemClick(ListView listView, View view, int position, long id) {
+        ResolveInfo resolveInfo = (ResolveInfo) listView.getAdapter().getItem(position);
+        ActivityInfo activityInfo = resolveInfo.activityInfo;
+
+        if (activityInfo == null)
+            return;
+
+        Intent intent = new Intent(Intent.ACTION_MAIN);
+        intent.setClassName(activityInfo.applicationInfo.packageName, activityInfo.name);
+        intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+
+        startActivity(intent);
+    }
+
+    private Drawable scaleDrawable(Drawable originalDrawable, int width, int height) {
+        Bitmap original = ((BitmapDrawable) originalDrawable).getBitmap();
+        Bitmap b = Bitmap.createScaledBitmap(original, width, height, false);
+        return new BitmapDrawable(getResources(), b);
     }
 }
